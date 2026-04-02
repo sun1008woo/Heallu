@@ -87,6 +87,9 @@ const config: ExpoConfig = {
     appScheme: env.scheme,
     iosBundleId: env.iosBundleId,
     androidPackage: env.androidPackage,
+    eas: {
+      projectId: "f94bf02c-5d6b-40ad-9554-8c46aa8171fd",
+    },
   },
 };
 

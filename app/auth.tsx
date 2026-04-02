@@ -27,9 +27,17 @@ export default function AuthScreen() {
   const { isAuthenticated, loading, user, logout } = useAuth();
   const { uploadToCloud, downloadFromCloud, isSyncing } = useCloudSync();
   const colors = useColors();
-  const [syncMessage, setSyncMessage] = useState<string>("");
+  const [syncMessage, setSyncMessage] = useState("");
   const googleLoginMutation = trpc.auth.loginWithGoogle.useMutation();
-  const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";
+  const googleWebClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ??
+    "895771070777-5966qil4lndmc746dgdaetjfnshnlv0o.apps.googleusercontent.com";
+  const googleAndroidClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
+    "895771070777-vh2m2q9bddvkc2sp8vb8t8g9upmc5gnl.apps.googleusercontent.com";
+  const googleIosClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
+    "895771070777-mq73fstbi5pgs7dbv2jd2bldb5ro7qss.apps.googleusercontent.com";
   const appScheme = Array.isArray(Constants.expoConfig?.scheme)
     ? Constants.expoConfig?.scheme[0]
     : Constants.expoConfig?.scheme;
@@ -40,8 +48,8 @@ export default function AuthScreen() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: googleWebClientId || undefined,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || undefined,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || undefined,
+    androidClientId: googleAndroidClientId || undefined,
+    iosClientId: googleIosClientId || undefined,
     redirectUri,
     scopes: ["openid", "profile", "email"],
   });
@@ -112,8 +120,15 @@ export default function AuthScreen() {
   }, [googleLoginMutation, response]);
 
   const handleGoogleSignIn = async () => {
-    if (!googleWebClientId) {
-      alert("EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID가 설정되지 않았습니다.");
+    const hasGoogleClientId =
+      Platform.OS === "android"
+        ? Boolean(googleAndroidClientId)
+        : Platform.OS === "ios"
+          ? Boolean(googleIosClientId)
+          : Boolean(googleWebClientId);
+
+    if (!hasGoogleClientId) {
+      alert("Google OAuth Client ID가 설정되지 않았습니다.");
       return;
     }
 
