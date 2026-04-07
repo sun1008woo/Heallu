@@ -46,6 +46,21 @@ export default function AuthScreen() {
   });
 
   useEffect(() => {
+    if (!request) {
+      return;
+    }
+
+    console.log("[GoogleAuth] request config", {
+      platform: Platform.OS,
+      webClientId: googleWebClientId,
+      androidClientId: googleAndroidClientId,
+      iosClientId: googleIosClientId,
+      redirectUri: request.redirectUri,
+      url: request.url,
+    });
+  }, [googleAndroidClientId, googleIosClientId, googleWebClientId, request]);
+
+  useEffect(() => {
     const routeAuthenticatedUser = async () => {
       if (!isAuthenticated || !user) {
         return;
@@ -124,6 +139,12 @@ export default function AuthScreen() {
     }
 
     try {
+      console.log("[GoogleAuth] promptAsync start", {
+        platform: Platform.OS,
+        androidClientId: googleAndroidClientId,
+        redirectUri: request?.redirectUri,
+        url: request?.url,
+      });
       await promptAsync();
     } catch (error) {
       console.error("Google Sign-In failed:", error);
