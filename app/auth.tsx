@@ -7,7 +7,6 @@ import { hasCompletedOnboarding } from "@/lib/storage";
 import { trpc } from "@/lib/trpc";
 import * as AuthSession from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
-import Constants from "expo-constants";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -38,19 +37,11 @@ export default function AuthScreen() {
   const googleIosClientId =
     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
     "895771070777-mq73fstbi5pgs7dbv2jd2bldb5ro7qss.apps.googleusercontent.com";
-  const appScheme = Array.isArray(Constants.expoConfig?.scheme)
-    ? Constants.expoConfig?.scheme[0]
-    : Constants.expoConfig?.scheme;
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: appScheme,
-    path: "auth",
-  });
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: googleWebClientId || undefined,
     androidClientId: googleAndroidClientId || undefined,
     iosClientId: googleIosClientId || undefined,
-    redirectUri,
     scopes: ["openid", "profile", "email"],
   });
 
