@@ -33,7 +33,7 @@ export default function AuthScreen() {
     "895771070777-5966qil4lndmc746dgdaetjfnshnlv0o.apps.googleusercontent.com";
   const googleAndroidClientId =
     process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
-    "895771070777-vh2m2q9bddvkc2sp8vb8t8g9upmc5gnl.apps.googleusercontent.com";
+    "895771070777-l44t7m0797dk3hk601aooro2aoacuifl.apps.googleusercontent.com";
   const googleIosClientId =
     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
     "895771070777-mq73fstbi5pgs7dbv2jd2bldb5ro7qss.apps.googleusercontent.com";
