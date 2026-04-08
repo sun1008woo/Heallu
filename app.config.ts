@@ -7,7 +7,29 @@ const env = {
   scheme: process.env.EXPO_PUBLIC_APP_SCHEME ?? "heallu",
   iosBundleId: process.env.EXPO_PUBLIC_IOS_BUNDLE_ID ?? "com.heallu.app",
   androidPackage: process.env.EXPO_PUBLIC_ANDROID_PACKAGE ?? "com.heallu.app",
+  googleAndroidClientId:
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
+    "895771070777-l44t7m0797dk3hk601aooro2aoacuifl.apps.googleusercontent.com",
+  googleIosClientId:
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
+    "895771070777-mq73fstbi5pgs7dbv2jd2bldb5ro7qss.apps.googleusercontent.com",
 };
+
+const toGoogleNativeScheme = (clientId?: string) =>
+  clientId
+    ? `com.googleusercontent.apps.${clientId.replace(
+        ".apps.googleusercontent.com",
+        "",
+      )}`
+    : undefined;
+
+const schemes = Array.from(
+  new Set([
+    env.scheme,
+    toGoogleNativeScheme(env.googleAndroidClientId),
+    toGoogleNativeScheme(env.googleIosClientId),
+  ].filter((value): value is string => Boolean(value))),
+);
 
 const config: ExpoConfig = {
   name: env.appName,
@@ -15,7 +37,7 @@ const config: ExpoConfig = {
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: env.scheme,
+  scheme: schemes,
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {

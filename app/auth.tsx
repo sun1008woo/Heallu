@@ -37,11 +37,33 @@ export default function AuthScreen() {
   const googleIosClientId =
     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
     "895771070777-mq73fstbi5pgs7dbv2jd2bldb5ro7qss.apps.googleusercontent.com";
+  const toGoogleNativeScheme = (clientId?: string) =>
+    clientId
+      ? `com.googleusercontent.apps.${clientId.replace(
+          ".apps.googleusercontent.com",
+          "",
+        )}:/oauthredirect`
+      : undefined;
+  const googleNativeRedirectUri =
+    Platform.OS === "android"
+      ? toGoogleNativeScheme(googleAndroidClientId)
+      : Platform.OS === "ios"
+        ? toGoogleNativeScheme(googleIosClientId)
+        : undefined;
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: googleWebClientId || undefined,
-    androidClientId: googleAndroidClientId || undefined,
-    iosClientId: googleIosClientId || undefined,
+    webClientId:
+      Platform.OS === "web" ? googleWebClientId || undefined : undefined,
+    androidClientId:
+      Platform.OS === "android" ? googleAndroidClientId || undefined : undefined,
+    iosClientId:
+      Platform.OS === "ios" ? googleIosClientId || undefined : undefined,
+    redirectUri:
+      Platform.OS === "web"
+        ? undefined
+        : AuthSession.makeRedirectUri({
+            native: googleNativeRedirectUri,
+          }),
     scopes: ["openid", "profile", "email"],
   });
 
