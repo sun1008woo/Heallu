@@ -139,6 +139,15 @@ export default function AuthScreen() {
     }
 
     try {
+      if (Platform.OS === "android") {
+        alert(
+          [
+            "Android Google OAuth 확인",
+            `clientId: ${googleAndroidClientId}`,
+            `redirectUri: ${request?.redirectUri ?? "none"}`,
+          ].join("\n"),
+        );
+      }
       console.log("[GoogleAuth] promptAsync start", {
         platform: Platform.OS,
         androidClientId: googleAndroidClientId,
