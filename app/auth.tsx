@@ -5,6 +5,12 @@ import { useColors } from "@/hooks/use-colors";
 import * as AuthStorage from "@/lib/_core/auth";
 import { hasCompletedOnboarding } from "@/lib/storage";
 import { trpc } from "@/lib/trpc";
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import * as AuthSession from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
 import { router } from "expo-router";
@@ -22,28 +28,36 @@ import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
 
+const DEFAULT_WEB_CLIENT_ID =
+  "895771070777-5966qil4lndmc746dgdaetjfnshnlv0o.apps.googleusercontent.com";
+const DEFAULT_ANDROID_CLIENT_ID =
+  "895771070777-l44t7m0797dk3hk601aooro2aoacuifl.apps.googleusercontent.com";
+const DEFAULT_IOS_CLIENT_ID =
+  "895771070777-mq73fstbi5pgs7dbv2jd2bldb5ro7qss.apps.googleusercontent.com";
+
+function toGoogleNativeScheme(clientId?: string) {
+  return clientId
+    ? `com.googleusercontent.apps.${clientId.replace(
+        ".apps.googleusercontent.com",
+        "",
+      )}:/oauthredirect`
+    : undefined;
+}
+
 export default function AuthScreen() {
   const { isAuthenticated, loading, user, logout } = useAuth();
   const { uploadToCloud, downloadFromCloud, isSyncing } = useCloudSync();
   const colors = useColors();
   const [syncMessage, setSyncMessage] = useState("");
   const googleLoginMutation = trpc.auth.loginWithGoogle.useMutation();
+
   const googleWebClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ??
-    "895771070777-5966qil4lndmc746dgdaetjfnshnlv0o.apps.googleusercontent.com";
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? DEFAULT_WEB_CLIENT_ID;
   const googleAndroidClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
-    "895771070777-l44t7m0797dk3hk601aooro2aoacuifl.apps.googleusercontent.com";
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? DEFAULT_ANDROID_CLIENT_ID;
   const googleIosClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
-    "895771070777-mq73fstbi5pgs7dbv2jd2bldb5ro7qss.apps.googleusercontent.com";
-  const toGoogleNativeScheme = (clientId?: string) =>
-    clientId
-      ? `com.googleusercontent.apps.${clientId.replace(
-          ".apps.googleusercontent.com",
-          "",
-        )}:/oauthredirect`
-      : undefined;
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? DEFAULT_IOS_CLIENT_ID;
+
   const googleNativeRedirectUri =
     Platform.OS === "android"
       ? toGoogleNativeScheme(googleAndroidClientId)
@@ -52,35 +66,20 @@ export default function AuthScreen() {
         : undefined;
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId:
-      Platform.OS === "web" ? googleWebClientId || undefined : undefined,
-    androidClientId:
-      Platform.OS === "android" ? googleAndroidClientId || undefined : undefined,
-    iosClientId:
-      Platform.OS === "ios" ? googleIosClientId || undefined : undefined,
-    redirectUri:
-      Platform.OS === "web"
-        ? undefined
-        : AuthSession.makeRedirectUri({
-            native: googleNativeRedirectUri,
-          }),
+    webClientId: googleWebClientId,
     scopes: ["openid", "profile", "email"],
   });
 
   useEffect(() => {
-    if (!request) {
+    if (Platform.OS === "web") {
       return;
     }
 
-    console.log("[GoogleAuth] request config", {
-      platform: Platform.OS,
+    GoogleSignin.configure({
       webClientId: googleWebClientId,
-      androidClientId: googleAndroidClientId,
-      iosClientId: googleIosClientId,
-      redirectUri: request.redirectUri,
-      url: request.url,
+      iosClientId: googleIosClientId || undefined,
     });
-  }, [googleAndroidClientId, googleIosClientId, googleWebClientId, request]);
+  }, [googleIosClientId, googleWebClientId]);
 
   useEffect(() => {
     const routeAuthenticatedUser = async () => {
@@ -95,9 +94,38 @@ export default function AuthScreen() {
     routeAuthenticatedUser();
   }, [isAuthenticated, user]);
 
+  const finishGoogleLogin = async (accessToken: string) => {
+    try {
+      const result = await googleLoginMutation.mutateAsync({ accessToken });
+      if (!result.success || !result.user) {
+        alert(result.error || "구글 로그인에 실패했습니다.");
+        return;
+      }
+
+      await AuthStorage.setUserInfo({
+        id: result.user.id,
+        openId: result.user.openId,
+        name: result.user.name,
+        email: result.user.email,
+        loginMethod: result.user.loginMethod,
+        lastSignedIn: new Date(result.user.lastSignedIn),
+      });
+
+      if (Platform.OS !== "web" && result.sessionToken) {
+        await AuthStorage.setSessionToken(result.sessionToken);
+      }
+
+      const completed = await hasCompletedOnboarding();
+      router.replace(completed ? "/(tabs)" : "/onboarding");
+    } catch (error) {
+      console.error("Google Sign-In failed:", error);
+      alert(error instanceof Error ? error.message : "구글 로그인에 실패했습니다.");
+    }
+  };
+
   useEffect(() => {
-    const completeGoogleLogin = async () => {
-      if (response?.type !== "success") {
+    const completeWebGoogleLogin = async () => {
+      if (Platform.OS !== "web" || response?.type !== "success") {
         return;
       }
 
@@ -112,48 +140,19 @@ export default function AuthScreen() {
         return;
       }
 
-      try {
-        const result = await googleLoginMutation.mutateAsync({ accessToken });
-        if (!result.success || !result.user) {
-          alert(result.error || "구글 로그인에 실패했습니다.");
-          return;
-        }
-
-        await AuthStorage.setUserInfo({
-          id: result.user.id,
-          openId: result.user.openId,
-          name: result.user.name,
-          email: result.user.email,
-          loginMethod: result.user.loginMethod,
-          lastSignedIn: new Date(result.user.lastSignedIn),
-        });
-
-        if (Platform.OS !== "web" && result.sessionToken) {
-          await AuthStorage.setSessionToken(result.sessionToken);
-        }
-
-        const completed = await hasCompletedOnboarding();
-        router.replace(completed ? "/(tabs)" : "/onboarding");
-      } catch (error) {
-        console.error("Google Sign-In failed:", error);
-        if (error instanceof Error) {
-          alert(error.message);
-          return;
-        }
-        alert("구글 로그인에 실패했습니다. 다시 시도해주세요.");
-      }
+      await finishGoogleLogin(accessToken);
     };
 
-    completeGoogleLogin();
-  }, [googleLoginMutation, response]);
+    completeWebGoogleLogin();
+  }, [response]);
 
   const handleGoogleSignIn = async () => {
     const hasGoogleClientId =
-      Platform.OS === "android"
-        ? Boolean(googleAndroidClientId)
+      Platform.OS === "web"
+        ? Boolean(googleWebClientId)
         : Platform.OS === "ios"
           ? Boolean(googleIosClientId)
-          : Boolean(googleWebClientId);
+          : Boolean(googleAndroidClientId);
 
     if (!hasGoogleClientId) {
       alert("Google OAuth Client ID가 설정되지 않았습니다.");
@@ -161,24 +160,49 @@ export default function AuthScreen() {
     }
 
     try {
-      if (Platform.OS === "android") {
+      if (Platform.OS !== "web") {
         alert(
           [
             "Android Google OAuth 확인",
             `clientId: ${googleAndroidClientId}`,
-            `redirectUri: ${request?.redirectUri ?? "none"}`,
+            `redirectUri: ${googleNativeRedirectUri ?? "none"}`,
           ].join("\n"),
         );
+
+        await GoogleSignin.hasPlayServices({
+          showPlayServicesUpdateDialog: true,
+        });
+
+        const signInResult = await GoogleSignin.signIn();
+        if (!isSuccessResponse(signInResult)) {
+          return;
+        }
+
+        const tokens = await GoogleSignin.getTokens();
+        if (!tokens.accessToken) {
+          alert("Google 액세스 토큰을 받지 못했습니다.");
+          return;
+        }
+
+        await finishGoogleLogin(tokens.accessToken);
+        return;
       }
-      console.log("[GoogleAuth] promptAsync start", {
-        platform: Platform.OS,
-        androidClientId: googleAndroidClientId,
-        redirectUri: request?.redirectUri,
-        url: request?.url,
-      });
+
       await promptAsync();
     } catch (error) {
       console.error("Google Sign-In failed:", error);
+
+      if (isErrorWithCode(error)) {
+        if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+          return;
+        }
+
+        if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          alert("Google Play 서비스가 필요합니다.");
+          return;
+        }
+      }
+
       alert("구글 로그인에 실패했습니다. 다시 시도해주세요.");
     }
   };
@@ -221,18 +245,24 @@ export default function AuthScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View className="flex-1 gap-8">
             <View className="items-center gap-4">
-              <Text className="text-3xl font-bold text-foreground">{user.name || "사용자"}</Text>
+              <Text className="text-3xl font-bold text-foreground">
+                {user.name || "사용자"}
+              </Text>
               <Text className="text-base text-muted">{user.email || "이메일 없음"}</Text>
             </View>
 
             {syncMessage ? (
               <View className="rounded-lg bg-primary/10 p-4">
-                <Text className="text-center font-semibold text-primary">{syncMessage}</Text>
+                <Text className="text-center font-semibold text-primary">
+                  {syncMessage}
+                </Text>
               </View>
             ) : null}
 
             <View className="gap-4">
-              <Text className="text-lg font-semibold text-foreground">데이터 동기화</Text>
+              <Text className="text-lg font-semibold text-foreground">
+                데이터 동기화
+              </Text>
 
               <Pressable
                 onPress={handleSyncData}
@@ -248,7 +278,9 @@ export default function AuthScreen() {
                 {isSyncing ? (
                   <ActivityIndicator color={colors.background} />
                 ) : (
-                  <Text className="font-semibold text-background">클라우드에 업로드</Text>
+                  <Text className="font-semibold text-background">
+                    클라우드로 업로드
+                  </Text>
                 )}
               </Pressable>
 
@@ -266,7 +298,9 @@ export default function AuthScreen() {
                 {isSyncing ? (
                   <ActivityIndicator color={colors.background} />
                 ) : (
-                  <Text className="font-semibold text-background">클라우드에서 다운로드</Text>
+                  <Text className="font-semibold text-background">
+                    클라우드에서 다운로드
+                  </Text>
                 )}
               </Pressable>
             </View>
@@ -291,7 +325,8 @@ export default function AuthScreen() {
     );
   }
 
-  const isGoogleLoginDisabled = !request || googleLoginMutation.isPending;
+  const isGoogleLoginDisabled =
+    (Platform.OS === "web" && !request) || googleLoginMutation.isPending;
 
   return (
     <ScreenContainer className="p-6">
@@ -312,24 +347,36 @@ export default function AuthScreen() {
             <View className="flex-row items-start gap-3">
               <Text className="text-2xl">☁️</Text>
               <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">클라우드 동기화</Text>
-                <Text className="text-sm text-muted">모든 기기에서 데이터를 이어서 사용할 수 있어요</Text>
+                <Text className="text-base font-semibold text-foreground">
+                  클라우드 동기화
+                </Text>
+                <Text className="text-sm text-muted">
+                  모든 기기에서 운동 데이터를 이어서 사용할 수 있어요.
+                </Text>
               </View>
             </View>
 
             <View className="flex-row items-start gap-3">
-              <Text className="text-2xl">📊</Text>
+              <Text className="text-2xl">📈</Text>
               <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">진행 상황 추적</Text>
-                <Text className="text-sm text-muted">운동 기록과 목표 달성 흐름을 한눈에 확인하세요</Text>
+                <Text className="text-base font-semibold text-foreground">
+                  진행 상황 추적
+                </Text>
+                <Text className="text-sm text-muted">
+                  운동 기록과 목표 달성 흐름을 꾸준히 확인하세요.
+                </Text>
               </View>
             </View>
 
             <View className="flex-row items-start gap-3">
               <Text className="text-2xl">🏆</Text>
               <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">개인 기록 관리</Text>
-                <Text className="text-sm text-muted">루틴과 성과를 쌓아가며 꾸준히 성장할 수 있어요</Text>
+                <Text className="text-base font-semibold text-foreground">
+                  개인 기록 관리
+                </Text>
+                <Text className="text-sm text-muted">
+                  루틴과 성과를 쌓아가며 꾸준히 성장할 수 있어요.
+                </Text>
               </View>
             </View>
           </View>
@@ -357,7 +404,8 @@ export default function AuthScreen() {
 
           <View className="mt-4 w-full rounded-lg bg-surface p-4">
             <Text className="text-center text-sm text-muted">
-              출시 빌드에서는 Google OAuth와 배포용 API 주소가 모두 설정되어 있어야 합니다.
+              출시 빌드에서는 Google OAuth와 배포용 API 주소가 모두 설정되어 있어야
+              합니다.
             </Text>
           </View>
         </View>
