@@ -67,6 +67,9 @@ export default function AuthScreen() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: googleWebClientId,
+    androidClientId:
+      Platform.OS === "android" ? googleAndroidClientId : undefined,
+    iosClientId: Platform.OS === "ios" ? googleIosClientId : undefined,
     scopes: ["openid", "profile", "email"],
   });
 
