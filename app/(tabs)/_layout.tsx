@@ -1,5 +1,5 @@
 import { Redirect, Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -40,7 +40,18 @@ export default function TabLayout() {
   }
 
   if (loading || onboardingReady === null) {
-    return null;
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   return (

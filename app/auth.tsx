@@ -1,4 +1,5 @@
 import { ScreenContainer } from "@/components/screen-container";
+import { getApiBaseUrl } from "@/constants/oauth";
 import { useAuth } from "@/hooks/use-auth";
 import { useCloudSync } from "@/hooks/use-cloud-sync";
 import { useColors } from "@/hooks/use-colors";
@@ -49,6 +50,7 @@ export default function AuthScreen() {
   const { uploadToCloud, downloadFromCloud, isSyncing } = useCloudSync();
   const colors = useColors();
   const [syncMessage, setSyncMessage] = useState("");
+  const [isGoogleFlowStarting, setIsGoogleFlowStarting] = useState(false);
   const googleLoginMutation = trpc.auth.loginWithGoogle.useMutation();
 
   const googleWebClientId =
@@ -85,8 +87,19 @@ export default function AuthScreen() {
   }, [googleIosClientId, googleWebClientId]);
 
   useEffect(() => {
+    const apiBaseUrl = getApiBaseUrl();
+    if (!apiBaseUrl) {
+      return;
+    }
+
+    fetch(`${apiBaseUrl}/api/health`).catch(() => {
+      // Ignore warm-up failures. This only reduces Render cold-start delay.
+    });
+  }, []);
+
+  useEffect(() => {
     const routeAuthenticatedUser = async () => {
-      if (!isAuthenticated || !user) {
+      if (!isAuthenticated || !user || isGoogleFlowStarting || googleLoginMutation.isPending) {
         return;
       }
 
@@ -95,10 +108,11 @@ export default function AuthScreen() {
     };
 
     routeAuthenticatedUser();
-  }, [isAuthenticated, user]);
+  }, [googleLoginMutation.isPending, isAuthenticated, isGoogleFlowStarting, user]);
 
   const finishGoogleLogin = async (accessToken: string) => {
     try {
+      setIsGoogleFlowStarting(true);
       const result = await googleLoginMutation.mutateAsync({ accessToken });
       if (!result.success || !result.user) {
         alert(result.error || "구글 로그인에 실패했습니다.");
@@ -123,6 +137,8 @@ export default function AuthScreen() {
     } catch (error) {
       console.error("Google Sign-In failed:", error);
       alert(error instanceof Error ? error.message : "구글 로그인에 실패했습니다.");
+    } finally {
+      setIsGoogleFlowStarting(false);
     }
   };
 
@@ -163,8 +179,9 @@ export default function AuthScreen() {
     }
 
     try {
+      setIsGoogleFlowStarting(true);
       if (Platform.OS !== "web") {
-        alert(
+        if (false) alert(
           [
             "Android Google OAuth 확인",
             `clientId: ${googleAndroidClientId}`,
