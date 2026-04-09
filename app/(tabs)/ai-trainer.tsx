@@ -237,19 +237,29 @@ export default function AITrainerScreen() {
           data={PERSONAS}
           keyExtractor={(item) => item.id}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}
+          style={{ flexGrow: 0, maxHeight: 52 }}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom: 12,
+            gap: 8,
+            alignItems: "center",
+          }}
           renderItem={({ item }) => {
             const active = (profile?.aiPersona ?? "kind_mentor") === item.id;
             return (
               <Pressable
                 style={({ pressed }) => [{
                   paddingHorizontal: 12,
+                  minHeight: 40,
                   paddingVertical: 8,
                   borderRadius: 999,
                   backgroundColor: active ? colors.primary : colors.surface,
                   borderWidth: 1,
                   borderColor: active ? colors.primary : colors.border,
                   opacity: pressed ? 0.8 : 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  alignSelf: "center",
                 }]}
                 onPress={() => handlePersonaSelect(item.id)}
               >

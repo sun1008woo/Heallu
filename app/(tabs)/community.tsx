@@ -8,6 +8,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { getCommunityRoutines, downloadRoutine } from "@/lib/community-library-storage";
 import { CommunityRoutine, CommunityLibraryFilter } from "@/lib/community-library-types";
+import { getSavedRoutines, saveRoutine } from "@/lib/saved-routines-diets";
 
 
 export default function CommunityScreen() {
@@ -79,7 +80,14 @@ export default function CommunityScreen() {
 
   const handleDownload = async (routine: CommunityRoutine) => {
     try {
+      const savedRoutines = await getSavedRoutines();
+      const alreadySaved = savedRoutines.some(
+        (savedRoutine) => savedRoutine.routine.id === routine.routine.id,
+      );
       await downloadRoutine(routine);
+      if (!alreadySaved) {
+        await saveRoutine(routine.routine);
+      }
       // 루틴이 이미 저장되었으므로 추가 저장 불필요
       // await saveUserRoutine(routine.routine);
       Alert.alert("성공", "루틴이 저장되었습니다!");

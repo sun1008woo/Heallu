@@ -176,6 +176,14 @@ export default function AuthScreen() {
           showPlayServicesUpdateDialog: true,
         });
 
+        // Force the account chooser to appear instead of silently reusing
+        // the last Google session on Android.
+        try {
+          await GoogleSignin.signOut();
+        } catch {
+          // Ignore when there is no cached Google session yet.
+        }
+
         const signInResult = await GoogleSignin.signIn();
         if (!isSuccessResponse(signInResult)) {
           return;

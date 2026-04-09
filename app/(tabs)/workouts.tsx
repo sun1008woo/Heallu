@@ -45,11 +45,14 @@ export default function WorkoutsScreen() {
   const styles = StyleSheet.create({
     categoryChip: {
       paddingHorizontal: 14,
+      minHeight: 40,
       paddingVertical: 8,
       borderRadius: 20,
       marginRight: 8,
       borderWidth: 1.5,
       flexShrink: 0,
+      alignItems: "center",
+      justifyContent: "center",
     },
     exerciseCard: {
       backgroundColor: colors.surface,
@@ -140,7 +143,12 @@ export default function WorkoutsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingLeft: 20, paddingRight: 8, marginBottom: 16 }}
+        contentContainerStyle={{
+          paddingLeft: 20,
+          paddingRight: 8,
+          marginBottom: 16,
+          alignItems: "center",
+        }}
       >
         <Pressable
           style={({ pressed }) => [
