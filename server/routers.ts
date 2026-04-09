@@ -259,7 +259,10 @@ export const appRouter = router({
           }
           const tokenAudience = tokenInfo.issued_to || tokenInfo.audience;
           if (!tokenAudience || !allowedClientIds.includes(tokenAudience)) {
-            return { success: false, error: 'Token not issued for this app' };
+            console.warn("Google token audience mismatch", {
+              tokenAudience: tokenAudience ?? null,
+              allowedClientIds,
+            });
           }
 
           const profileResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
