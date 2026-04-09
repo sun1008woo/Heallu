@@ -193,14 +193,6 @@ export default function AuthScreen() {
           showPlayServicesUpdateDialog: true,
         });
 
-        // Force the account chooser to appear instead of silently reusing
-        // the last Google session on Android.
-        try {
-          await GoogleSignin.signOut();
-        } catch {
-          // Ignore when there is no cached Google session yet.
-        }
-
         const signInResult = await GoogleSignin.signIn();
         if (!isSuccessResponse(signInResult)) {
           return;
@@ -354,7 +346,9 @@ export default function AuthScreen() {
   }
 
   const isGoogleLoginDisabled =
-    (Platform.OS === "web" && !request) || googleLoginMutation.isPending;
+    (Platform.OS === "web" && !request) ||
+    googleLoginMutation.isPending ||
+    isGoogleFlowStarting;
 
   return (
     <ScreenContainer className="p-6">
@@ -425,7 +419,9 @@ export default function AuthScreen() {
             >
               <Text className="text-2xl text-white">G</Text>
               <Text className="text-lg font-semibold text-white">
-                {googleLoginMutation.isPending ? "로그인 중..." : "구글로 로그인"}
+                {googleLoginMutation.isPending || isGoogleFlowStarting
+                  ? "로그인 중..."
+                  : "구글로 로그인"}
               </Text>
             </Pressable>
           </View>
