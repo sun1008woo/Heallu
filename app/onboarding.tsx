@@ -13,7 +13,15 @@ import type {
 } from "@/lib/types";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 const GENDERS: { id: Gender; label: string }[] = [
   { id: "male", label: "남성" },
@@ -65,6 +73,7 @@ export default function OnboardingScreen() {
   const [weightInput, setWeightInput] = useState(
     toDisplayWeight(DEFAULT_PROFILE.weight, DEFAULT_PROFILE.weightUnit ?? "kg"),
   );
+  const [profileReady, setProfileReady] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -87,7 +96,10 @@ export default function OnboardingScreen() {
 
       if (nextProfile.onboardingCompleted) {
         router.replace("/(tabs)");
+        return;
       }
+
+      setProfileReady(true);
     };
 
     if (isAuthenticated) {
@@ -211,6 +223,14 @@ export default function OnboardingScreen() {
       setSaving(false);
     }
   };
+
+  if (loading || !isAuthenticated || !profileReady || saving) {
+    return (
+      <ScreenContainer className="items-center justify-center bg-background">
+        <ActivityIndicator size="large" color={colors.primary} />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer className="bg-background">

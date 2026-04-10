@@ -25,8 +25,14 @@ export function createRunningRoutine(savedRoutineId: string, routine: WorkoutRou
     const dayIndex = i % routine.dailyWorkouts.length;
     const dayWorkout = routine.dailyWorkouts[dayIndex];
     const exercises: ExerciseProgress[] = dayWorkout.exercises.map((ex) => ({
+      exerciseId: ex.exerciseId,
       exerciseName: ex.name,
       completed: false,
+      sets: ex.sets,
+      reps: ex.reps,
+      duration: ex.duration,
+      restTime: ex.restTime,
+      notes: ex.notes,
     }));
 
     dailyProgress.push({

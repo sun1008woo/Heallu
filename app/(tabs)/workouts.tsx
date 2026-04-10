@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, Pressable, StyleSheet, FlatList, TextInput } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
@@ -8,7 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { EXERCISES, WORKOUT_CATEGORIES } from "@/lib/exercises-data";
-import { Exercise, WorkoutCategory } from "@/lib/types";
+import type { Exercise, WorkoutCategory } from "@/lib/types";
 
 const DIFFICULTY_LABELS = {
   beginner: "초급",
@@ -35,10 +35,14 @@ export default function WorkoutsScreen() {
     action();
   };
 
-  const filteredExercises = EXERCISES.filter((ex) => {
-    const matchesCategory = selectedCategory === "all" || ex.category === selectedCategory;
-    const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ex.muscleGroups.some((m) => m.includes(searchQuery));
+  const filteredExercises = EXERCISES.filter((exercise) => {
+    const matchesCategory = selectedCategory === "all" || exercise.category === selectedCategory;
+    const lowerSearch = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !lowerSearch ||
+      exercise.name.toLowerCase().includes(lowerSearch) ||
+      exercise.muscleGroups.some((muscle) => muscle.toLowerCase().includes(lowerSearch));
+
     return matchesCategory && matchesSearch;
   });
 
@@ -79,38 +83,40 @@ export default function WorkoutsScreen() {
 
   const renderExercise = ({ item }: { item: Exercise }) => (
     <Pressable
-      style={({ pressed }) => [styles.exerciseCard, { opacity: pressed ? 0.8 : 1 }]}
-      onPress={() => handlePress(() => router.push(`/workout/${item.id}` as any))}
+      style={({ pressed }) => [styles.exerciseCard, { opacity: pressed ? 0.82 : 1 }]}
+      onPress={() => handlePress(() => router.push(`/workout/${item.id}` as never))}
     >
-      <View style={{
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: colors.primary + "20",
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 14,
-      }}>
+      <View
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: colors.primary + "20",
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: 14,
+        }}
+      >
         <IconSymbol name="dumbbell.fill" size={22} color={colors.primary} />
       </View>
       <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
-          <View style={{
-            paddingHorizontal: 8,
-            paddingVertical: 2,
-            borderRadius: 10,
-            backgroundColor: DIFFICULTY_COLORS[item.difficulty] + "20",
-          }}>
-            <Text style={{ fontSize: 11, fontWeight: "600", color: DIFFICULTY_COLORS[item.difficulty] }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>{item.name}</Text>
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 10,
+              backgroundColor: DIFFICULTY_COLORS[item.difficulty] + "20",
+            }}
+          >
+            <Text style={{ fontSize: 11, fontWeight: "700", color: DIFFICULTY_COLORS[item.difficulty] }}>
               {DIFFICULTY_LABELS[item.difficulty]}
             </Text>
           </View>
         </View>
-        <Text style={{ fontSize: 13, color: colors.muted }}>
-          {item.muscleGroups.join(" · ")}
-        </Text>
-        <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
+        <Text style={{ fontSize: 13, color: colors.muted }}>{item.muscleGroups.join(" · ")}</Text>
+        <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
           {item.sets}세트 × {item.duration ? `${item.duration}초` : `${item.reps}회`} · 휴식 {item.restTime}초
         </Text>
       </View>
@@ -120,26 +126,45 @@ export default function WorkoutsScreen() {
 
   return (
     <ScreenContainer>
-      {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 }}>
-        <Text style={{ fontSize: 28, fontWeight: "700", color: colors.foreground }}>운동</Text>
-        <Text style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>나에게 맞는 운동을 찾아보세요</Text>
+        <Text style={{ fontSize: 28, fontWeight: "800", color: colors.foreground }}>운동</Text>
+        <Text style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>나에게 맞는 운동을 찾아보고 직접 루틴도 만들어보세요.</Text>
       </View>
 
-      {/* Search */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+        <Pressable
+          onPress={() => handlePress(() => router.push("/custom-routine-builder" as never))}
+          style={({ pressed }) => [
+            {
+              borderRadius: 16,
+              padding: 16,
+              backgroundColor: colors.primary,
+              opacity: pressed ? 0.84 : 1,
+            },
+          ]}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ fontSize: 17, fontWeight: "800", color: "#fff" }}>나만의 운동 리스트 만들기</Text>
+              <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", marginTop: 4 }}>
+                음악 플레이리스트처럼 운동을 골라 순서, 세트, 횟수, 휴식까지 직접 구성해보세요.
+              </Text>
+            </View>
+            <IconSymbol name="plus.circle.fill" size={28} color="#fff" />
+          </View>
+        </Pressable>
+      </View>
+
       <View style={{ flexDirection: "row", paddingHorizontal: 20, marginBottom: 16, gap: 10 }}>
-        <View style={{ position: "relative", flex: 1 }}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="운동 검색..."
-            placeholderTextColor={colors.muted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="운동 검색..."
+          placeholderTextColor={colors.muted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
 
-      {/* Categories */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -161,31 +186,30 @@ export default function WorkoutsScreen() {
           ]}
           onPress={() => handlePress(() => setSelectedCategory("all"))}
         >
-          <Text style={{ fontSize: 13, fontWeight: "600", color: selectedCategory === "all" ? "#fff" : colors.muted }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: selectedCategory === "all" ? "#fff" : colors.muted }}>
             전체
           </Text>
         </Pressable>
-        {WORKOUT_CATEGORIES.map((cat) => (
+        {WORKOUT_CATEGORIES.map((category) => (
           <Pressable
-            key={cat.id}
+            key={category.id}
             style={({ pressed }) => [
               styles.categoryChip,
               {
-                backgroundColor: selectedCategory === cat.id ? cat.color : "transparent",
-                borderColor: selectedCategory === cat.id ? cat.color : colors.border,
+                backgroundColor: selectedCategory === category.id ? category.color : "transparent",
+                borderColor: selectedCategory === category.id ? category.color : colors.border,
                 opacity: pressed ? 0.8 : 1,
               },
             ]}
-            onPress={() => handlePress(() => setSelectedCategory(cat.id as WorkoutCategory))}
+            onPress={() => handlePress(() => setSelectedCategory(category.id as WorkoutCategory))}
           >
-            <Text style={{ fontSize: 13, fontWeight: "600", color: selectedCategory === cat.id ? "#fff" : colors.muted }}>
-              {cat.name}
+            <Text style={{ fontSize: 13, fontWeight: "700", color: selectedCategory === category.id ? "#fff" : colors.muted }}>
+              {category.name}
             </Text>
           </Pressable>
         ))}
       </ScrollView>
 
-      {/* Exercise List */}
       <FlatList
         data={filteredExercises}
         renderItem={renderExercise}
@@ -195,7 +219,7 @@ export default function WorkoutsScreen() {
         ListEmptyComponent={
           <View style={{ alignItems: "center", paddingTop: 60 }}>
             <IconSymbol name="magnifyingglass" size={48} color={colors.muted} />
-            <Text style={{ fontSize: 16, color: colors.muted, marginTop: 12 }}>검색 결과가 없습니다</Text>
+            <Text style={{ fontSize: 16, color: colors.muted, marginTop: 12 }}>검색 결과가 없어요.</Text>
           </View>
         }
       />
