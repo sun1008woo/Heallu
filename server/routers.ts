@@ -239,32 +239,6 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         try {
-          const allowedClientIds = [
-            process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-            process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-            process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_ID,
-          ].filter((value): value is string => Boolean(value));
-
-          if (allowedClientIds.length === 0) {
-            return { success: false, error: 'Google client ID not configured' };
-          }
-
-          const tokenInfoResponse = await fetch(
-            "https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=" + input.accessToken
-          );
-          const tokenInfo = await tokenInfoResponse.json();
-          if (!tokenInfoResponse.ok || tokenInfo.error) {
-            return { success: false, error: 'Invalid token' };
-          }
-          const tokenAudience = tokenInfo.issued_to || tokenInfo.audience;
-          if (!tokenAudience || !allowedClientIds.includes(tokenAudience)) {
-            console.warn("Google token audience mismatch", {
-              tokenAudience: tokenAudience ?? null,
-              allowedClientIds,
-            });
-          }
-
           const profileResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
             headers: {
               Authorization: `Bearer ${input.accessToken}`,

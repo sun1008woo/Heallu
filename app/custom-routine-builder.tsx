@@ -43,14 +43,14 @@ export default function CustomRoutineBuilderScreen() {
     });
   }, [searchQuery]);
 
-  const handlePress = (action: () => void) => {
+  function handlePress(action: () => void) {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     action();
-  };
+  }
 
-  const addExerciseToRoutine = (exercise: Exercise) => {
+  function addExerciseToRoutine(exercise: Exercise) {
     setSelectedExercises((prev) => [
       ...prev,
       {
@@ -65,19 +65,19 @@ export default function CustomRoutineBuilderScreen() {
         youtubeVideoId: exercise.youtubeVideoId,
       },
     ]);
-  };
+  }
 
-  const updateExercise = (localId: string, patch: Partial<BuilderExercise>) => {
+  function updateExercise(localId: string, patch: Partial<BuilderExercise>) {
     setSelectedExercises((prev) =>
-      prev.map((exercise) => (exercise.localId === localId ? { ...exercise, ...patch } : exercise))
+      prev.map((exercise) => (exercise.localId === localId ? { ...exercise, ...patch } : exercise)),
     );
-  };
+  }
 
-  const removeExercise = (localId: string) => {
+  function removeExercise(localId: string) {
     setSelectedExercises((prev) => prev.filter((exercise) => exercise.localId !== localId));
-  };
+  }
 
-  const moveExercise = (localId: string, direction: -1 | 1) => {
+  function moveExercise(localId: string, direction: -1 | 1) {
     setSelectedExercises((prev) => {
       const index = prev.findIndex((exercise) => exercise.localId === localId);
       const nextIndex = index + direction;
@@ -88,16 +88,16 @@ export default function CustomRoutineBuilderScreen() {
       next.splice(nextIndex, 0, moved);
       return next;
     });
-  };
+  }
 
-  const buildRoutine = (): WorkoutRoutine | null => {
+  function buildRoutine(): WorkoutRoutine | null {
     if (!routineName.trim()) {
-      Alert.alert("이름이 필요해요", "루틴 이름을 먼저 입력해주세요.");
+      Alert.alert("이름이 필요해요", "루틴 이름을 먼저 입력해 주세요.");
       return null;
     }
 
     if (selectedExercises.length === 0) {
-      Alert.alert("운동을 추가해주세요", "최소 한 개 이상의 운동을 리스트에 넣어주세요.");
+      Alert.alert("운동을 추가해 주세요", "최소 한 개 이상의 운동이 필요해요.");
       return null;
     }
 
@@ -114,9 +114,9 @@ export default function CustomRoutineBuilderScreen() {
     return {
       id: `custom-${Date.now()}`,
       name: routineName.trim(),
-      description: routineDescription.trim() || "내가 직접 만든 커스텀 운동 루틴",
+      description: routineDescription.trim() || "직접 만든 커스텀 루틴",
       goal: "custom",
-      difficulty: "중급",
+      difficulty: "intermediate",
       durationWeeks: 1,
       daysPerWeek: 1,
       dailyWorkouts: [
@@ -130,9 +130,9 @@ export default function CustomRoutineBuilderScreen() {
       totalCaloriesBurn: totalCalories,
       notes: "운동 탭에서 직접 만든 루틴",
     };
-  };
+  }
 
-  const handleSaveRoutine = async () => {
+  async function handleSaveRoutine() {
     const routine = buildRoutine();
     if (!routine) return;
 
@@ -140,9 +140,9 @@ export default function CustomRoutineBuilderScreen() {
     try {
       await saveRoutine(routine);
       if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      Alert.alert("저장 완료", "내 루틴에 새 운동 리스트를 저장했어요.", [
+      Alert.alert("저장 완료", "새 루틴이 내 루틴에 저장됐어요.", [
         {
           text: "확인",
           onPress: () => router.replace("/(tabs)/my-routines"),
@@ -154,19 +154,19 @@ export default function CustomRoutineBuilderScreen() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }
 
   const styles = StyleSheet.create({
     sectionCard: {
       backgroundColor: colors.surface,
-      borderRadius: 18,
+      borderRadius: 20,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: 16,
     },
     input: {
-      borderRadius: 12,
+      borderRadius: 14,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.background,
@@ -188,8 +188,8 @@ export default function CustomRoutineBuilderScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
         <View style={{ marginBottom: 16 }}>
           <Text style={{ fontSize: 28, fontWeight: "800", color: colors.foreground }}>나만의 운동 리스트</Text>
-          <Text style={{ fontSize: 14, color: colors.muted, marginTop: 4 }}>
-            운동을 골라 플레이리스트처럼 순서를 정하고, 세트와 횟수도 직접 맞춰 저장해보세요.
+          <Text style={{ fontSize: 14, color: colors.muted, marginTop: 4, lineHeight: 22 }}>
+            운동을 고르고, 순서를 바꾸고, 세트와 반복 수를 조정해서 플레이리스트처럼 루틴을 구성해 보세요.
           </Text>
         </View>
 
@@ -199,7 +199,7 @@ export default function CustomRoutineBuilderScreen() {
             style={styles.input}
             value={routineName}
             onChangeText={setRoutineName}
-            placeholder="예: 상체 데이, 러닝 + 코어"
+            placeholder="예: 상체 데이, 출근 전 20분"
             placeholderTextColor={colors.muted}
           />
 
@@ -208,7 +208,7 @@ export default function CustomRoutineBuilderScreen() {
             style={[styles.input, { minHeight: 88, textAlignVertical: "top" }]}
             value={routineDescription}
             onChangeText={setRoutineDescription}
-            placeholder="이 루틴의 목적이나 메모를 적어주세요."
+            placeholder="루틴 목적이나 메모를 적어 주세요."
             placeholderTextColor={colors.muted}
             multiline
           />
@@ -222,14 +222,14 @@ export default function CustomRoutineBuilderScreen() {
 
           {selectedExercises.length === 0 ? (
             <View style={{ paddingVertical: 12 }}>
-              <Text style={{ color: colors.muted }}>아래에서 운동을 추가해 나만의 리스트를 만들어보세요.</Text>
+              <Text style={{ color: colors.muted }}>아래에서 운동을 추가해 나만의 리스트를 만들어 보세요.</Text>
             </View>
           ) : (
             selectedExercises.map((exercise, index) => (
               <View
                 key={exercise.localId}
                 style={{
-                  borderRadius: 14,
+                  borderRadius: 16,
                   borderWidth: 1,
                   borderColor: colors.border,
                   backgroundColor: colors.background,
@@ -244,22 +244,13 @@ export default function CustomRoutineBuilderScreen() {
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row", gap: 8 }}>
-                    <Pressable
-                      onPress={() => moveExercise(exercise.localId, -1)}
-                      style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-                    >
+                    <Pressable onPress={() => moveExercise(exercise.localId, -1)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                       <IconSymbol name="chevron.up" size={18} color={colors.muted} />
                     </Pressable>
-                    <Pressable
-                      onPress={() => moveExercise(exercise.localId, 1)}
-                      style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-                    >
+                    <Pressable onPress={() => moveExercise(exercise.localId, 1)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                       <IconSymbol name="chevron.down" size={18} color={colors.muted} />
                     </Pressable>
-                    <Pressable
-                      onPress={() => removeExercise(exercise.localId)}
-                      style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-                    >
+                    <Pressable onPress={() => removeExercise(exercise.localId)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                       <IconSymbol name="trash.fill" size={18} color={colors.error} />
                     </Pressable>
                   </View>
@@ -276,17 +267,14 @@ export default function CustomRoutineBuilderScreen() {
                     />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.label, { marginBottom: 6 }]}>{exercise.duration ? "시간(초)" : "횟수"}</Text>
+                    <Text style={[styles.label, { marginBottom: 6 }]}>{exercise.duration ? "시간(초)" : "반복 수"}</Text>
                     <TextInput
                       style={styles.input}
                       keyboardType="number-pad"
                       value={String(exercise.duration ?? exercise.reps)}
                       onChangeText={(value) => {
                         const nextValue = Math.max(Number(value) || 1, 1);
-                        updateExercise(
-                          exercise.localId,
-                          exercise.duration ? { duration: nextValue } : { reps: nextValue }
-                        );
+                        updateExercise(exercise.localId, exercise.duration ? { duration: nextValue } : { reps: nextValue });
                       }}
                     />
                   </View>
@@ -311,7 +299,7 @@ export default function CustomRoutineBuilderScreen() {
             style={[styles.input, { marginBottom: 12 }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="운동 이름이나 부위를 검색하세요."
+            placeholder="운동 이름이나 부위를 검색해 보세요."
             placeholderTextColor={colors.muted}
           />
 
@@ -359,7 +347,7 @@ export default function CustomRoutineBuilderScreen() {
             style={({ pressed }) => [
               {
                 flex: 1,
-                borderRadius: 14,
+                borderRadius: 16,
                 paddingVertical: 14,
                 alignItems: "center",
                 justifyContent: "center",
@@ -379,7 +367,7 @@ export default function CustomRoutineBuilderScreen() {
             style={({ pressed }) => [
               {
                 flex: 1.4,
-                borderRadius: 14,
+                borderRadius: 16,
                 paddingVertical: 14,
                 alignItems: "center",
                 justifyContent: "center",

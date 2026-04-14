@@ -1,3 +1,4 @@
+import { AppLoadingScreen } from "@/components/app-loading-screen";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
@@ -14,7 +15,6 @@ import type {
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -35,7 +35,7 @@ const GOALS: { id: FitnessGoal; label: string }[] = [
   { id: "muscle_gain", label: "근육 증가" },
   { id: "endurance", label: "지구력 향상" },
   { id: "flexibility", label: "유연성 향상" },
-  { id: "general", label: "전반적 건강" },
+  { id: "general", label: "일반 건강" },
 ];
 
 const LEVELS: { id: DifficultyLevel; label: string }[] = [
@@ -53,9 +53,9 @@ const PREFERENCES: { id: WorkoutPreference; label: string }[] = [
 
 const PERSONAS: { id: AIPersona; label: string; description: string }[] = [
   { id: "kind_mentor", label: "다정한 멘토", description: "부드럽고 응원하는 스타일" },
-  { id: "data_analyst", label: "데이터 분석가", description: "근거와 수치 중심 설명" },
-  { id: "gigachad", label: "기가채드", description: "강한 코치 톤, 남성 사용자용" },
-  { id: "custom", label: "직접 작성", description: "원하는 말투 직접 설정" },
+  { id: "data_analyst", label: "데이터 분석가", description: "근거와 수치를 중심으로 설명" },
+  { id: "gigachad", label: "기가채드", description: "강한 코치 톤의 동기부여" },
+  { id: "custom", label: "직접 작성", description: "원하는 말투를 직접 설정" },
 ];
 
 function toDisplayWeight(weightKg: number, weightUnit: WeightUnit) {
@@ -88,11 +88,16 @@ export default function OnboardingScreen() {
       const nextProfile: UserProfile = {
         ...DEFAULT_PROFILE,
         ...stored,
-        name: stored.name === DEFAULT_PROFILE.name && user?.name ? user.name : stored.name,
+        name:
+          stored.name === DEFAULT_PROFILE.name && user?.name
+            ? user.name
+            : stored.name,
       };
 
       setProfile(nextProfile);
-      setWeightInput(toDisplayWeight(nextProfile.weight, nextProfile.weightUnit ?? "kg"));
+      setWeightInput(
+        toDisplayWeight(nextProfile.weight, nextProfile.weightUnit ?? "kg"),
+      );
 
       if (nextProfile.onboardingCompleted) {
         router.replace("/(tabs)");
@@ -103,7 +108,7 @@ export default function OnboardingScreen() {
     };
 
     if (isAuthenticated) {
-      loadProfile();
+      void loadProfile();
     }
   }, [isAuthenticated, user]);
 
@@ -151,7 +156,7 @@ export default function OnboardingScreen() {
         },
         chipActive: {
           borderColor: colors.primary,
-          backgroundColor: colors.primary + "18",
+          backgroundColor: `${colors.primary}18`,
         },
         chipText: {
           fontSize: 14,
@@ -188,22 +193,22 @@ export default function OnboardingScreen() {
     const weightUnit = profile.weightUnit ?? "kg";
 
     if (!profile.name.trim()) {
-      alert("이름을 입력해주세요.");
+      alert("이름을 입력해 주세요.");
       return;
     }
 
     if (!age || age < 10 || age > 100) {
-      alert("나이를 올바르게 입력해주세요.");
+      alert("나이를 올바르게 입력해 주세요.");
       return;
     }
 
     if (!height || height < 100 || height > 250) {
-      alert("키를 올바르게 입력해주세요.");
+      alert("키를 올바르게 입력해 주세요.");
       return;
     }
 
     if (!weightValue || weightValue <= 0) {
-      alert("몸무게를 올바르게 입력해주세요.");
+      alert("몸무게를 올바르게 입력해 주세요.");
       return;
     }
 
@@ -224,11 +229,27 @@ export default function OnboardingScreen() {
     }
   };
 
-  if (loading || !isAuthenticated || !profileReady || saving) {
+  if (loading) {
     return (
-      <ScreenContainer className="items-center justify-center bg-background">
-        <ActivityIndicator size="large" color={colors.primary} />
-      </ScreenContainer>
+      <AppLoadingScreen title="Heallu" message="계정 상태를 확인하고 있어요..." />
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <AppLoadingScreen title="Heallu" message="로그인 화면으로 이동하고 있어요..." />
+    );
+  }
+
+  if (!profileReady) {
+    return (
+      <AppLoadingScreen title="Heallu" message="맞춤 정보 화면을 준비하고 있어요..." />
+    );
+  }
+
+  if (saving) {
+    return (
+      <AppLoadingScreen title="Heallu" message="입력한 정보를 저장하고 있어요..." />
     );
   }
 
@@ -432,9 +453,7 @@ export default function OnboardingScreen() {
                   <Text style={[styles.chipText, active && styles.chipTextActive]}>
                     {persona.label}
                   </Text>
-                  <Text style={[styles.helper, { marginTop: 4 }]}>
-                    {persona.description}
-                  </Text>
+                  <Text style={[styles.helper, { marginTop: 4 }]}>{persona.description}</Text>
                 </Pressable>
               );
             })}
@@ -442,7 +461,7 @@ export default function OnboardingScreen() {
           {(profile.aiPersona ?? "kind_mentor") === "custom" && (
             <TextInput
               style={styles.input}
-              placeholder="원하는 말투와 역할을 직접 적어주세요"
+              placeholder="원하는 말투나 톤을 직접 적어주세요."
               placeholderTextColor={colors.muted}
               value={profile.customPersonaPrompt ?? ""}
               multiline
